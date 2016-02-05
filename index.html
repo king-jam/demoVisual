@@ -1,0 +1,189 @@
+<html>
+<head>
+
+</head>
+<body>
+<div id="container"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.13.0/vis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.13.0/vis.min.css" rel="stylesheet" type="text/css">
+<script>
+
+    function ObjectLength( object ) {
+        var length = 0;
+        for( var key in object ) {
+            if( object.hasOwnProperty(key) ) {
+                ++length;
+            }
+        }
+        return length;
+    };
+    
+    function arrayObjectIndexOf(myArray, searchTerm, property) {
+        for(var i = 0, len = myArray.length; i < len; i++) {
+            if (myArray[i][property] === searchTerm) return i;
+        }
+        return -1;
+    }
+    
+    function idByLabel(array, label) {
+        for (var i = 0, len = array.length; i < len; i++) {
+            if (array[i]['label'] === label) return array[i]['id']
+        }
+        return -1;
+    }
+    
+    function setType(data, node, index) {
+        var switchExp
+        if(index === undefined) {
+            switchExp = data.type
+        } else {
+            switchExp = data[index].type
+        }
+        switch (switchExp) {
+            case "vm":
+                node['image'] = 'vm.png';
+                break;
+            case "router":
+                node['image'] = 'router.png';
+                break;
+            case "switch":
+                node['image'] = 'switch.png';
+                break;
+            case "server":
+                node['image'] = 'server.png';
+                break;
+            case "nic":
+                node['image'] = 'nic.png';
+                break;
+            case "unknown":
+                node['image'] = 'unknown.png';
+                break;
+            default:
+                node['image'] = 'unknown.png';
+        }
+    }
+    
+    function setTitleString(data, node, index) {
+        var switchExp
+        if(index === undefined) {
+            nodeData = data
+        } else {
+            nodeData = data[index]
+        }
+        var titleString = ""
+        if ("hostname" in nodeData) {
+            titleString = titleString + nodeData['hostname'] + '<br>'
+        }
+        if ("description" in nodeData) {
+            titleString = titleString + nodeData['description'] + '<br>'
+        }
+        if ("address" in nodeData) {
+            titleString = titleString + "IP: " + nodeData['address'] + '<br>'
+        }
+        if ("vlan" in nodeData) {
+            if (nodeData['vlan'] != "0") {
+                titleString = titleString + "VLAN: " + nodeData['vlan'] + '<br>'
+            }
+        }
+        if ("portid" in nodeData) {
+            titleString = titleString + "PortID: " + nodeData['portid'] + '<br>'
+        }
+        if ("host" in nodeData) {
+            titleString = titleString + "Host MAC: " + nodeData['host'] + '<br>'
+        }
+        if ("portdesc" in nodeData) {
+            titleString = titleString + "Port Name: " + nodeData['portdesc'] + '<br>'
+        }
+        if ("type" in nodeData) {
+            titleString = titleString + "Type: " + nodeData['type'].toUpperCase() + '<br>'
+        }
+        node['title'] = titleString
+    }
+    
+    $.ajax({
+        url: URLTOREPLACEHERE,
+        dataType: "json",
+        success: function(response) {
+            var idVal = 1
+            var nodesArray = [];
+            var edgesArray = [];
+            for (i = 0; i < response.length; i++) {
+                var node = { id: idVal, label: response[i].hostname, color: 'cyan', shape: 'image'};
+                setType(response, node, i)
+                setTitleString(response, node, i)
+                nodesArray.push(node)
+                idVal++
+            }
+            for (i = 0; i < response.length; i++) {
+                var ports = Object.keys(response[i].connections)
+                for (j = 0; j < ObjectLength(response[i].connections); j++) {
+                    for (k = 0; k < ObjectLength(response[i].connections[ports[j]]); k++) {
+                        var neighbors = Object.keys(response[i].connections[ports[j]])
+                        var neighbor = response[i].connections[ports[j]][neighbors[k]]
+                        console.log(neighbors[k])
+                        if("hostname" in neighbor) {
+                            neighborLabel = neighbor.hostname
+                        } else {
+                            neighborLabel = neighbors[k]
+                        }
+                        if (arrayObjectIndexOf(nodesArray, neighborLabel, "label") === -1) {
+
+                            var node = { id: idVal + i, label: neighborLabel, shape: 'image'}
+                            setType(neighbor, node)
+                            setTitleString(neighbor, node)
+                            nodesArray.push(node)
+                            idVal++
+                        }
+                        targetId = idByLabel(nodesArray, neighborLabel)
+                        var edge = { from: i+1, to: targetId, label: ports[j], arrows:'from'}
+                        edgesArray.push(edge)
+                    }
+                }
+            }
+            
+            var nodes = new vis.DataSet(nodesArray)
+            
+            var edges = new vis.DataSet(edgesArray);
+            
+            var container = document.getElementById('container');
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            var options = {
+                interaction: {
+                    hover:true
+                },
+                //height: '100%',
+                //width: '100%',
+                //autoResize: true,
+                layout: {
+                    randomSeed: undefined,
+                    hierarchical: {
+                        nodeSpacing: 200,
+                        }
+                },
+                physics: {
+                    repulsion: {
+                        springLength: 5000
+                    },
+                    hierarchicalRepulsion: {
+                        nodeDistance: 200
+                    }
+                },
+                edges : {
+                    color: {
+                        inherit:true
+                    },
+                    smooth: {
+                    }
+                }
+            };
+            var network = new vis.Network(container, data, options);
+        }
+    });
+
+</script>
+</body>
+</html>

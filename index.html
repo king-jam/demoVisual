@@ -102,7 +102,7 @@
     }
     
     $.ajax({
-        url: URLTOREPLACEHERE,
+        url: URLTOREPLACE,
         dataType: "json",
         success: function(response) {
             var idVal = 1
@@ -121,7 +121,6 @@
                     for (k = 0; k < ObjectLength(response[i].connections[ports[j]]); k++) {
                         var neighbors = Object.keys(response[i].connections[ports[j]])
                         var neighbor = response[i].connections[ports[j]][neighbors[k]]
-                        console.log(neighbors[k])
                         if("hostname" in neighbor) {
                             neighborLabel = neighbor.hostname
                         } else {
@@ -155,28 +154,37 @@
                 interaction: {
                     hover:true
                 },
-                //height: '100%',
-                //width: '100%',
-                //autoResize: true,
+                height: '100%',
+                width: '100%',
+                autoResize: true,
                 layout: {
                     randomSeed: undefined,
+                    improvedLayout: true,
                     hierarchical: {
-                        nodeSpacing: 200,
-                        }
+                        enabled: false,
+                        edgeMinimization: false,
+                        nodeSpacing: 3000,
+                        blockShifting: true
+                    }
                 },
                 physics: {
-                    repulsion: {
-                        springLength: 5000
-                    },
-                    hierarchicalRepulsion: {
-                        nodeDistance: 200
-                    }
+                    enabled: true,
+                barnesHut: {
+                    gravitationalConstant: -5000,
+                    centralGravity: 0.01,
+                    springLength: 200,
+                    springConstant: 0.01,
+                    damping: 0.09,
+                    avoidOverlap: 0.5
+                },
+
                 },
                 edges : {
                     color: {
                         inherit:true
                     },
                     smooth: {
+                        type: 'dynamic',
                     }
                 }
             };
